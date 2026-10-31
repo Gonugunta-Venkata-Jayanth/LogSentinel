@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  LogSentinel - SSH auth-log threat scoring API.
+  Free-tier friendly: Lambda (1M req/mo free), HTTP API, DynamoDB provisioned 5 RCU/5 WCU
+  (inside the always-free 25/25), S3 for raw log archives (5 GB free for 12 months).
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: https://gonugunta-venkata-jayanth.github.io
+    Description: Dashboard origin allowed by CORS
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 15
+
+Resources:
+  ReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      TimeToLiveSpecification: { AttributeName: expires_at, Enabled: true }
+
+  LogArchiveBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules: [{ Id: expire-30d, Status: Enabled, ExpirationInDays: 30 }]
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin, "http://localhost:8080"]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [content-type]
+      DefaultRouteSettings: { ThrottlingBurstLimit: 20, ThrottlingRateLimit: 10 }
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: app.lambda_handler.handler
+      Environment:
+        Variables:
+          STORAGE: dynamodb
+          TABLE_NAME: !Ref ReportsTable
+          ARCHIVE_BUCKET: !Ref LogArchiveBucket
+          CORS_ORIGINS: !Ref AllowedOrigin
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ReportsTable }
+        - S3WritePolicy: { BucketName: !Ref LogArchiveBucket }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ApiFunction}
+      RetentionInDays: 7
+
+Outputs:
+  ApiUrl:
+    Description: Paste into the dashboard's "API URL" box
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  TableName:
+    Value: !Ref ReportsTable

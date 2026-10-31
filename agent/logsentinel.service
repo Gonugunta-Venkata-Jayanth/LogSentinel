@@ -1,0 +1,15 @@
+[Unit]
+Description=LogSentinel SSH log shipper
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/logsentinel
+ExecStart=/usr/local/bin/logsentinel-agent.sh
+# Hardening: needs to read the journal and (when enforcing) talk to ufw.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/etc/ufw /lib/ufw /run

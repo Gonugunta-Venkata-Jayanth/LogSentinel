@@ -1,0 +1,51 @@
+{
+  "version": "2026.10.31",
+  "type": "logistic_regression",
+  "features": [
+    "failed_count",
+    "unique_users",
+    "invalid_user_count",
+    "success_count",
+    "fail_ratio",
+    "root_attempts"
+  ],
+  "log_features": [
+    "failed_count",
+    "unique_users",
+    "invalid_user_count",
+    "success_count",
+    "root_attempts"
+  ],
+  "mean": [
+    1.915304,
+    1.169138,
+    0.615835,
+    0.718182,
+    0.583307,
+    0.822482
+  ],
+  "scale": [
+    1.776275,
+    0.740808,
+    1.177682,
+    0.736658,
+    0.440113,
+    1.657016
+  ],
+  "coef": [
+    -0.470679,
+    1.752572,
+    0.549134,
+    -0.877749,
+    0.640608,
+    1.546654
+  ],
+  "intercept": -0.548322,
+  "threshold": 0.5,
+  "metrics": {
+    "roc_auc": 0.961,
+    "precision": 0.9474,
+    "recall": 0.9419,
+    "test_size": 400
+  }
+}

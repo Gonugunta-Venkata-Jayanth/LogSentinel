@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LogSentinel · SSH threat scoring</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🛡️ LogSentinel</h1>
+      <p class="tag">ML scoring of Linux SSH auth logs: spot brute force, credential stuffing and low-and-slow attacks.</p>
+    </div>
+    <div class="mode">
+      <label>API URL <input id="api" placeholder="blank = run in browser" /></label>
+      <span id="modeBadge" class="badge">in-browser model</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card input">
+      <div class="row">
+        <h2>1 · Paste <code>/var/log/auth.log</code> or <code>journalctl -u ssh</code></h2>
+        <div class="actions">
+          <button id="sample" class="ghost">Load sample (1.1k lines)</button>
+          <label class="ghost file">Upload file<input type="file" id="file" accept=".log,.txt" hidden /></label>
+          <button id="run">Analyze</button>
+        </div>
+      </div>
+      <textarea id="log" spellcheck="false" placeholder="Oct 30 03:00:01 web-01 sshd[901]: Failed password for root from 203.0.113.9 port 40001 ssh2"></textarea>
+    </section>
+
+    <section class="kpis" id="kpis" hidden>
+      <div class="kpi"><span id="k-events">0</span><small>auth events</small></div>
+      <div class="kpi"><span id="k-ips">0</span><small>source IPs</small></div>
+      <div class="kpi danger"><span id="k-block">0</span><small>block</small></div>
+      <div class="kpi warn"><span id="k-susp">0</span><small>suspicious</small></div>
+      <div class="kpi"><span id="k-fail">0</span><small>failed logins</small></div>
+    </section>
+
+    <section class="grid" id="charts" hidden>
+      <div class="card"><h3>Failed vs successful logins per hour</h3><canvas id="timeline"></canvas></div>
+      <div class="card"><h3>Most-targeted usernames</h3><canvas id="users"></canvas></div>
+    </section>
+
+    <section class="card" id="tableCard" hidden>
+      <div class="row">
+        <h2>2 · Ranked source IPs</h2>
+        <button id="copy" class="ghost">Copy ufw block commands</button>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>IP</th><th>Risk</th><th>Verdict</th><th>Failed</th><th>OK</th><th>Users</th><th>Invalid</th><th>Root</th><th>/min</th><th>First seen</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card about">
+      <h3>How it works</h3>
+      <p>Lines are parsed into auth events, aggregated per source IP into behavioural features, and scored by a logistic-regression model
+        trained on a synthetic corpus of legit, fumbling, brute-force, stuffing and low-and-slow sessions
+        (<span id="metrics">loading…</span>). The same model serves from a FastAPI backend on AWS Lambda + DynamoDB; set an API URL above to use it.
+        Your logs never leave the browser in in-browser mode.</p>
+      <p><a href="https://github.com/Gonugunta-Venkata-Jayanth/LogSentinel">Source on GitHub</a></p>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

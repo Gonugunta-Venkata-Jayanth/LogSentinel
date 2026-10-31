@@ -1,0 +1,14 @@
+# Full stack locally: API (SQLite volume) + static dashboard.
+#   docker compose up --build   ->  dashboard http://localhost:8080/?api=http://localhost:8000
+services:
+  api:
+    build: ./backend
+    ports: ["8000:8000"]
+    volumes: ["reports:/data"]
+  web:
+    image: nginx:1.27-alpine
+    ports: ["8080:80"]
+    volumes: ["./frontend:/usr/share/nginx/html:ro"]
+    depends_on: [api]
+volumes:
+  reports:
